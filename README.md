@@ -102,6 +102,13 @@ pip3 install -r requirements.txt
 ```
 
 ## Usage of Tinderbot
+### Ubuntu quick start (auto install + launch)
+If you are on Ubuntu and want a one-command launch that installs everything needed:
+```bash
+./run_ubuntu.sh
+```
+This script creates a local virtual environment, installs Python dependencies, and starts `auto_swipe.py`.
+
 ### Features
 Features of Tinderbot as demonstrated belowed can be found here: **[Tinderbot features](https://github.com/frederikme/TinderBot/blob/master/DOCUMENTATION.md)**</br>
 
@@ -180,4 +187,3 @@ Also for the section **data mining**: scraping profiles is not only against Tind
 People on Tinder did not give their permission to be stored by any other entity than Tinder itself and people have the right to be forgotten. (see: [GDPR in Europe](https://ec.europa.eu/info/law/law-topic/data-protection/data-protection-eu_en))</br>
 
 So here's a reminder that this software is for **educational purposes only** and it cannot be held accountable for any consequences you may face by having used this tool. Neither personal (banned account) nor judicial (lawsuits for privacy violations).
-

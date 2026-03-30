@@ -1,7 +1,8 @@
 # Selenium: automation of browser
 from selenium import webdriver
 # from webdriver_manager.chrome import ChromeDriverManager
-import undetected_chromedriver.v2 as uc
+import importlib
+import importlib.util
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -17,6 +18,7 @@ import random
 import requests
 import atexit
 from pathlib import Path
+from statistics import mean
 
 # Tinderbotz: helper classes
 from tinderbotz.helpers.geomatch import Geomatch
@@ -31,6 +33,11 @@ from tinderbotz.helpers.email_helper import EmailHelper
 from tinderbotz.helpers.constants_helper import Printouts
 from tinderbotz.helpers.xpaths import *
 from tinderbotz.addproxy import get_proxy_extension
+
+if importlib.util.find_spec("undetected_chromedriver.v2") is not None:
+    uc = importlib.import_module("undetected_chromedriver.v2")
+else:
+    uc = importlib.import_module("undetected_chromedriver")
 
 
 class Session:
@@ -346,6 +353,147 @@ class Session:
             helper.unmatch(chatid)
 
     # Utilities
+    def _match_profile_filters(self, geomatch, profile_filters):
+        if not profile_filters:
+            return True
+
+        age = geomatch.get_age()
+        distance = geomatch.get_distance()
+        gender = geomatch.get_gender() or ""
+        bio = (geomatch.get_bio() or "").lower()
+        passions = [p.lower() for p in (geomatch.get_passions() or [])]
+
+        min_age = profile_filters.get("min_age")
+        max_age = profile_filters.get("max_age")
+        max_distance = profile_filters.get("max_distance")
+        allowed_genders = profile_filters.get("genders")
+        required_passions = [p.lower() for p in profile_filters.get("required_passions", [])]
+        required_bio_keywords = [k.lower() for k in profile_filters.get("bio_keywords", [])]
+
+        if min_age is not None and (age is None or age < min_age):
+            return False
+        if max_age is not None and (age is None or age > max_age):
+            return False
+        if max_distance is not None and (distance is None or distance > max_distance):
+            return False
+        if allowed_genders and gender.lower() not in [g.lower() for g in allowed_genders]:
+            return False
+        if required_passions and not all(req in passions for req in required_passions):
+            return False
+        if required_bio_keywords and not all(word in bio for word in required_bio_keywords):
+            return False
+
+        return True
+
+    def _match_image_filters(self, geomatch, image_filters):
+        if not image_filters:
+            return True
+
+        try:
+            images_ai_data = geomatch.get_images_ai_data()
+        except Exception as exc:
+            print(f"Could not run image AI scan: {exc}")
+            return False
+
+        if not images_ai_data:
+            return False
+
+        dominant_genders = []
+        dominant_races = []
+        dominant_emotions = []
+        estimated_ages = []
+
+        for data in images_ai_data:
+            if not isinstance(data, dict):
+                continue
+            dominant_genders.append((data.get("dominant_gender") or "").lower())
+            dominant_races.append((data.get("dominant_race") or "").lower())
+            dominant_emotions.append((data.get("dominant_emotion") or "").lower())
+
+            age = data.get("age")
+            if isinstance(age, (int, float)):
+                estimated_ages.append(age)
+
+        if not dominant_genders and not dominant_races and not dominant_emotions and not estimated_ages:
+            return False
+
+        dominant_gender = image_filters.get("dominant_gender")
+        dominant_race = image_filters.get("dominant_race")
+        dominant_emotion = image_filters.get("dominant_emotion")
+        min_estimated_age = image_filters.get("min_estimated_age")
+        max_estimated_age = image_filters.get("max_estimated_age")
+
+        if dominant_gender and dominant_gender.lower() not in dominant_genders:
+            return False
+        if dominant_race and dominant_race.lower() not in dominant_races:
+            return False
+        if dominant_emotion and dominant_emotion.lower() not in dominant_emotions:
+            return False
+
+        if estimated_ages:
+            average_estimated_age = mean(estimated_ages)
+            if min_estimated_age is not None and average_estimated_age < min_estimated_age:
+                return False
+            if max_estimated_age is not None and average_estimated_age > max_estimated_age:
+                return False
+
+        return True
+
+    def like_with_ai_filters(self, amount=1, profile_filters=None, image_filters=None, sleep=1, randomize_sleep=True, quickload=False):
+        """
+        Like/dislike profiles based on profile metadata and image AI analysis.
+
+        profile_filters example:
+            {
+                "min_age": 24,
+                "max_age": 32,
+                "max_distance": 20,
+                "genders": ["Woman"],
+                "required_passions": ["Travel", "Gym"],
+                "bio_keywords": ["hiking", "coffee"]
+            }
+
+        image_filters example:
+            {
+                "dominant_gender": "Woman",
+                "dominant_race": "white",
+                "dominant_emotion": "happy",
+                "min_estimated_age": 23,
+                "max_estimated_age": 35
+            }
+        """
+        if self._is_logged_in():
+            helper = GeomatchHelper(browser=self.browser)
+            amount_processed = 0
+            initial_sleep = sleep
+            self._handle_potential_popups()
+
+            print("\nAI-filtered swiping started.")
+            while amount_processed < amount:
+                if randomize_sleep:
+                    sleep = random.uniform(0.5, 2.3) * initial_sleep
+
+                geomatch = self.get_geomatch(quickload=quickload)
+                if not geomatch:
+                    continue
+
+                profile_ok = self._match_profile_filters(geomatch, profile_filters or {})
+                image_ok = self._match_image_filters(geomatch, image_filters or {})
+
+                if profile_ok and image_ok:
+                    if helper.like():
+                        self.session_data['like'] += 1
+                        print(f"AI decision: LIKE -> {geomatch.get_name()}")
+                else:
+                    helper.dislike()
+                    self.session_data['dislike'] += 1
+                    print(f"AI decision: DISLIKE -> {geomatch.get_name()}")
+
+                amount_processed += 1
+                time.sleep(sleep)
+
+            self._print_liked_stats()
+
     def _handle_potential_popups(self):
         delay = 0.25
 
@@ -501,4 +649,3 @@ class Session:
             print(f"You've liked {self.session_data['like']} profiles during this session.")
         if dislikes > 0:
             print(f"You've disliked {self.session_data['dislike']} profiles during this session.")
-

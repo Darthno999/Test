@@ -44,6 +44,24 @@ if __name__ == "__main__":
     session.like(amount=10, ratio="72.5%", sleep=1)
     session.dislike(amount=1)
     session.superlike(amount=1)
+
+    # AI-based filtering before every swipe (profile data + image analysis)
+    # This uses DeepFace under the hood and can be significantly slower than regular swiping.
+    session.like_with_ai_filters(
+        amount=5,
+        profile_filters={
+            "min_age": 23,
+            "max_age": 34,
+            "max_distance": 40,
+            "genders": ["Woman"],
+            "bio_keywords": ["travel", "coffee"]
+        },
+        image_filters={
+            "dominant_gender": "Woman",
+            "dominant_emotion": "happy"
+        },
+        sleep=1.5
+    )
     
     # adjust allowed distance for geomatches
     # Note: PARAMETER IS IN KILOMETERS!

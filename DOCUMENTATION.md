@@ -21,6 +21,7 @@ Seeing these profiles and thus '*breaking the first barrier of matching*' is why
   * [Global](#global)
 * [Actions](#actions)
   * [Liking Geomatches](#liking-geomatches)
+  * [AI-Filtered Swiping](#ai-filtered-swiping)
   * [Disliking Geomatches](#disliking-geomatches)
   * [Superliking Geomatches](#superliking-geomatches)
   * [Get Matches](#getting-matches)
@@ -217,6 +218,45 @@ session.like()
 **Example usage**</br>
 ```
 session.like(amount=10, ratio="72.5%", sleep=1)
+```
+
+
+## AI-Filtered Swiping
+You can let an AI scan profile pictures and combine that result with your own filters before each swipe.
+This action will automatically **like** profiles that pass your filters and **dislike** profiles that do not.
+
+```
+session.like_with_ai_filters()
+```
+
+**Optional parameters**</br>
+`amount`: *integer* - number of profiles to process</br>
+`profile_filters`: *dict* - filters based on profile metadata (age, distance, bio, passions, gender)</br>
+`image_filters`: *dict* - filters based on DeepFace image analysis (dominant gender/race/emotion, estimated age)</br>
+`sleep`: *float* - base seconds to sleep between swipes</br>
+`randomize_sleep`: *boolean* - randomize sleep to mimic human behavior</br>
+`quickload`: *boolean* - load all images (recommended `False` for AI scanning)</br>
+
+**Example usage**</br>
+```
+session.like_with_ai_filters(
+    amount=15,
+    profile_filters={
+        "min_age": 24,
+        "max_age": 32,
+        "max_distance": 25,
+        "genders": ["Woman"],
+        "required_passions": ["Travel"],
+        "bio_keywords": ["hiking", "coffee"]
+    },
+    image_filters={
+        "dominant_gender": "Woman",
+        "dominant_emotion": "happy",
+        "min_estimated_age": 23,
+        "max_estimated_age": 35
+    },
+    sleep=1.5
+)
 ```
 
 ## Disliking Geomatches
