@@ -1,7 +1,8 @@
 # Selenium: automation of browser
 from selenium import webdriver
 # from webdriver_manager.chrome import ChromeDriverManager
-import undetected_chromedriver.v2 as uc
+import importlib
+import importlib.util
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -32,6 +33,11 @@ from tinderbotz.helpers.email_helper import EmailHelper
 from tinderbotz.helpers.constants_helper import Printouts
 from tinderbotz.helpers.xpaths import *
 from tinderbotz.addproxy import get_proxy_extension
+
+if importlib.util.find_spec("undetected_chromedriver.v2") is not None:
+    uc = importlib.import_module("undetected_chromedriver.v2")
+else:
+    uc = importlib.import_module("undetected_chromedriver")
 
 
 class Session:
